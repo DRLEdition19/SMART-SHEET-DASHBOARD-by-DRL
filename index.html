@@ -213,7 +213,6 @@
 
     <div id="toast" class="toast">Ação concluída!</div>
 
-    <!-- Modals -->
     <div id="promptModal" class="modal-overlay">
         <div class="modal-box">
             <h3 id="pmTitle" class="modal-title">Título</h3>
@@ -232,7 +231,6 @@
         </div>
     </div>
 
-    <!-- Advanced Filter Menu -->
     <div id="advFilterMenu" class="adv-filter-menu">
         <input type="text" id="advFilterSearch" class="adv-filter-search" placeholder="Pesquisar valores...">
         <div id="advFilterList" class="adv-filter-list"></div>
@@ -242,7 +240,6 @@
         </div>
     </div>
 
-    <!-- Context Menus -->
     <div id="colContextMenu" class="context-menu">
         <div class="ctx-item" id="ctxColRename"><i class="fas fa-edit"></i> Renomear Coluna</div>
         <div class="ctx-item" id="ctxColAddLeft"><i class="fas fa-arrow-left"></i> Inserir Coluna à Esquerda</div>
@@ -253,7 +250,6 @@
         <div class="ctx-item" id="ctxSortZA"><i class="fas fa-sort-alpha-up"></i> Ordenar Z-A</div>
     </div>
 
-    <!-- Sidebar Menu -->
     <div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
     <aside id="sidebar" class="sidebar">
         <div class="sidebar-header">
@@ -279,7 +275,6 @@
         </div>
     </aside>
 
-    <!-- Toolbar -->
     <header class="top-toolbar">
         <div class="toolbar-group">
             <button class="btn-tool" onclick="toggleSidebar()"><i class="fas fa-bars"></i> Menu</button>
@@ -298,24 +293,18 @@
         </div>
     </header>
 
-    <!-- Enquadramento container root element target -->
     <main class="dashboard-container" id="exportTarget">
         
-        <!-- Header -->
         <div class="header-card">
             <div class="header-icon-container" id="mainIcon"><i class="fas fa-leaf"></i></div>
             <input type="text" id="mainTitleInput" class="header-title-input" value="ABA PRINCIPAL">
         </div>
 
-        <!-- Hierarchy Navigation -->
         <div class="navigation-hierarchy">
-            <!-- Abas -->
             <div class="abas-bar" id="abasBar"></div>
-            <!-- Planilhas -->
             <div class="planilhas-bar" id="planilhasBar"></div>
         </div>
 
-        <!-- Data Sheet -->
         <div class="sheet-card">
             <div class="table-scroll-area" id="scrollAreaEl">
                 <table id="dataTable">
@@ -325,7 +314,6 @@
             </div>
         </div>
 
-        <!-- Summary -->
         <div class="summary-cards-row">
             <div class="summary-card area">
                 <div class="sc-icon"><i class="fas fa-seedling"></i></div>
@@ -975,6 +963,68 @@
                 });
             }
         }
+
+        // --- LÓGICA DE ZOOM NA PLANILHA (MOUSE E TOUCH/PINÇA) ---
+        let currentZoom = 1;
+        const minZoom = 0.5; // Zoom mínimo
+        const maxZoom = 2.5; // Zoom máximo
+        const tableContainer = document.getElementById("scrollAreaEl");
+        const tableElement = document.getElementById("dataTable");
+
+        function applyZoom() {
+            // Utilizamos 'zoom' porque ele recalcula a área de barra de rolagem
+            // e não afeta o 'position: sticky' dos cabeçalhos.
+            tableElement.style.zoom = currentZoom;
+        }
+
+        // 1. Zoom via Scroll do Mouse (Para computadores)
+        // OBS: Requer a tecla 'Ctrl' pressionada para não perder o rolamento vertical padrão
+        tableContainer.addEventListener("wheel", (e) => {
+            if (e.ctrlKey) {
+                e.preventDefault(); // Impede o zoom do navegador inteiro
+                if (e.deltaY < 0) {
+                    currentZoom = Math.min(maxZoom, currentZoom + 0.1);
+                } else {
+                    currentZoom = Math.max(minZoom, currentZoom - 0.1);
+                }
+                applyZoom();
+            }
+        }, { passive: false });
+
+        // 2. Zoom via Movimento de Pinça (Touch em Smartphones)
+        let initialPinchDist = null;
+        let startZoom = 1;
+
+        tableContainer.addEventListener("touchstart", (e) => {
+            if (e.touches.length === 2) {
+                initialPinchDist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                startZoom = currentZoom;
+            }
+        }, { passive: false });
+
+        tableContainer.addEventListener("touchmove", (e) => {
+            if (e.touches.length === 2 && initialPinchDist !== null) {
+                e.preventDefault(); // Impede o zoom da página/gestos padrão do touch
+                const currentDist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                
+                // Calcula a proporção do movimento dos dedos
+                const pinchRatio = currentDist / initialPinchDist;
+                currentZoom = Math.min(maxZoom, Math.max(minZoom, startZoom * pinchRatio));
+                applyZoom();
+            }
+        }, { passive: false });
+
+        tableContainer.addEventListener("touchend", (e) => {
+            if (e.touches.length < 2) {
+                initialPinchDist = null; // Reseta ao soltar a pinça
+            }
+        });
     </script>
 </body>
 </html>
